@@ -26,15 +26,14 @@ npm test
 
 ## Example utterances
 
-- `Alexa, open Goodnight Sweetheart`
-- `Alexa, ask Goodnight Sweetheart to set my bedtime for 10 PM every day`
-- `Alexa, ask Goodnight Sweetheart to set Monday bedtime for 9:30 PM`
-- `Alexa, ask Goodnight Sweetheart what my bedtime schedule is`
-- `Alexa, ask Goodnight Sweetheart to clear my bedtime on Friday`
+- `Alexa, open sweetheart bedtime`
+- `Alexa, ask sweetheart bedtime to set my bedtime for 10 PM every day`
+- `Alexa, ask sweetheart bedtime to set Monday bedtime for 9:30 PM`
+- `Alexa, ask sweetheart bedtime what my bedtime schedule is`
+- `Alexa, ask sweetheart bedtime to clear my bedtime on Friday`
 
 ## Current constraints
 
 - The reminder will be delivered as an Alexa reminder, so Alexa may prepend reminder framing rather than speaking only the custom line by itself.
 - Before store submission, replace the placeholder policy URLs and finalize production icons.
 - The current manifest is structured for an ASK project flow. When we connect the AWS and Alexa console pieces, we can update any deployment-specific settings in place.
-
