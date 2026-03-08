@@ -1,0 +1,105 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "goodnight sweetheart",
+      "intents": [
+        {
+          "name": "SetDailyBedtimeIntent",
+          "slots": [
+            {
+              "name": "bedtimeTime",
+              "type": "AMAZON.TIME"
+            }
+          ],
+          "samples": [
+            "set my bedtime for {bedtimeTime} every day",
+            "set bedtime for {bedtimeTime} every day",
+            "every day at {bedtimeTime}",
+            "I go to bed at {bedtimeTime} every day",
+            "set my schedule for {bedtimeTime} every day"
+          ]
+        },
+        {
+          "name": "SetDayBedtimeIntent",
+          "slots": [
+            {
+              "name": "bedtimeDay",
+              "type": "AMAZON.DayOfWeek"
+            },
+            {
+              "name": "bedtimeTime",
+              "type": "AMAZON.TIME"
+            }
+          ],
+          "samples": [
+            "set {bedtimeDay} bedtime for {bedtimeTime}",
+            "on {bedtimeDay} I go to bed at {bedtimeTime}",
+            "set my bedtime on {bedtimeDay} for {bedtimeTime}",
+            "make {bedtimeDay} bedtime {bedtimeTime}",
+            "set {bedtimeDay} for {bedtimeTime}"
+          ]
+        },
+        {
+          "name": "ViewBedtimeScheduleIntent",
+          "samples": [
+            "what is my bedtime schedule",
+            "what are my bedtimes",
+            "tell me my bedtime schedule",
+            "when are my bedtime reminders",
+            "what is set"
+          ]
+        },
+        {
+          "name": "ClearDayBedtimeIntent",
+          "slots": [
+            {
+              "name": "bedtimeDay",
+              "type": "AMAZON.DayOfWeek"
+            }
+          ],
+          "samples": [
+            "clear my bedtime on {bedtimeDay}",
+            "remove my bedtime on {bedtimeDay}",
+            "delete my bedtime on {bedtimeDay}",
+            "clear {bedtimeDay}"
+          ]
+        },
+        {
+          "name": "ClearAllBedtimesIntent",
+          "samples": [
+            "clear my bedtime schedule",
+            "clear everything",
+            "delete all bedtimes",
+            "remove all reminders"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.YesIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NoIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        }
+      ],
+      "types": []
+    }
+  }
+}
+

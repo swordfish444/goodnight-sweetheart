@@ -1,0 +1,59 @@
+{
+  "manifest": {
+    "manifestVersion": "1.0",
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "name": "Goodnight Sweetheart",
+          "summary": "Schedules loving bedtime reminders with Alexa.",
+          "description": "Goodnight Sweetheart lets customers set one bedtime for every day or custom bedtimes for specific days. At each scheduled time, Alexa delivers a warm bedtime reminder designed to leave the customer feeling appreciated, loved, and grateful before sleep.",
+          "examplePhrases": [
+            "Alexa, open Goodnight Sweetheart",
+            "Alexa, ask Goodnight Sweetheart to set my bedtime for 10 PM every day",
+            "Alexa, ask Goodnight Sweetheart what my bedtime schedule is"
+          ],
+          "keywords": [
+            "bedtime",
+            "sleep",
+            "gratitude",
+            "night",
+            "reminder"
+          ],
+          "smallIconUri": "https://raw.githubusercontent.com/swordfish444/goodnight-sweetheart/main/assets/icon-108.png",
+          "largeIconUri": "https://raw.githubusercontent.com/swordfish444/goodnight-sweetheart/main/assets/icon-512.png"
+        }
+      },
+      "isAvailableWorldwide": true,
+      "testingInstructions": "Grant reminder permissions when prompted. Test one every-day schedule, one custom-day schedule, schedule readback, single-day clear, and full clear. Confirm reminder delivery happens as Alexa reminder audio on device.",
+      "category": "HEALTH_AND_FITNESS",
+      "distributionMode": "PUBLIC"
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "sourceDir": "lambda/custom"
+        },
+        "interfaces": []
+      }
+    },
+    "permissions": [
+      {
+        "name": "alexa::alerts:reminders:skill:readwrite"
+      }
+    ],
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "usesPersonalInfo": false,
+      "isChildDirected": false,
+      "isExportCompliant": true,
+      "containsAds": false,
+      "locales": {
+        "en-US": {
+          "privacyPolicyUrl": "https://github.com/swordfish444/goodnight-sweetheart/blob/main/docs/privacy-policy.md",
+          "termsOfUseUrl": "https://github.com/swordfish444/goodnight-sweetheart/blob/main/docs/terms-of-use.md"
+        }
+      }
+    }
+  }
+}
+
