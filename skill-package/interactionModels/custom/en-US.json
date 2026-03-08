@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "sweetheart bedtime",
+      "invocationName": "goodnight sweetheart",
       "intents": [
         {
           "name": "SetDailyBedtimeIntent",
@@ -14,9 +14,12 @@
           "samples": [
             "set my bedtime for {bedtimeTime} every day",
             "set bedtime for {bedtimeTime} every day",
+            "set bedtime for {bedtimeTime} every night",
             "every day at {bedtimeTime}",
+            "every night at {bedtimeTime}",
             "I go to bed at {bedtimeTime} every day",
-            "set my schedule for {bedtimeTime} every day"
+            "set my schedule for {bedtimeTime} every day",
+            "remind me at {bedtimeTime} every night"
           ]
         },
         {
@@ -36,7 +39,29 @@
             "on {bedtimeDay} I go to bed at {bedtimeTime}",
             "set my bedtime on {bedtimeDay} for {bedtimeTime}",
             "make {bedtimeDay} bedtime {bedtimeTime}",
-            "set {bedtimeDay} for {bedtimeTime}"
+            "set {bedtimeDay} for {bedtimeTime}",
+            "set bedtime on {bedtimeDay} to {bedtimeTime}",
+            "remind me on {bedtimeDay} at {bedtimeTime}"
+          ]
+        },
+        {
+          "name": "SetScheduleGroupBedtimeIntent",
+          "slots": [
+            {
+              "name": "bedtimeGroup",
+              "type": "SCHEDULE_GROUP"
+            },
+            {
+              "name": "bedtimeTime",
+              "type": "AMAZON.TIME"
+            }
+          ],
+          "samples": [
+            "set {bedtimeGroup} for {bedtimeTime}",
+            "make {bedtimeGroup} bedtime {bedtimeTime}",
+            "set my {bedtimeGroup} bedtime for {bedtimeTime}",
+            "set bedtime on {bedtimeGroup} to {bedtimeTime}",
+            "remind me at {bedtimeTime} on {bedtimeGroup}"
           ]
         },
         {
@@ -47,6 +72,15 @@
             "tell me my bedtime schedule",
             "when are my bedtime reminders",
             "what is set"
+          ]
+        },
+        {
+          "name": "TonightBedtimeIntent",
+          "samples": [
+            "what time is bedtime tonight",
+            "what is my bedtime tonight",
+            "do I have a bedtime reminder tonight",
+            "when is bedtime tonight"
           ]
         },
         {
@@ -61,7 +95,8 @@
             "clear my bedtime on {bedtimeDay}",
             "remove my bedtime on {bedtimeDay}",
             "delete my bedtime on {bedtimeDay}",
-            "clear {bedtimeDay}"
+            "clear {bedtimeDay}",
+            "turn off {bedtimeDay} reminders"
           ]
         },
         {
@@ -98,7 +133,43 @@
           "samples": []
         }
       ],
-      "types": []
+      "types": [
+        {
+          "name": "SCHEDULE_GROUP",
+          "values": [
+            {
+              "name": {
+                "value": "every day",
+                "synonyms": [
+                  "every night",
+                  "daily",
+                  "everyday",
+                  "all week"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "weekdays",
+                "synonyms": [
+                  "weekday",
+                  "work week",
+                  "workweek",
+                  "weeknights"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "weekends",
+                "synonyms": [
+                  "weekend"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   }
 }

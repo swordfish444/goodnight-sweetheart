@@ -1,6 +1,8 @@
-const { REMINDER_PERMISSION, SKILL_PREFIX } = require('./constants');
+const { DAY_BY_CODE, REMINDER_PERMISSION, SKILL_PREFIX } = require('./constants');
+const { generateBedtimeMessage } = require('./ai');
 const { randomMessage } = require('./messages');
 const {
+  dayCodeForTimeZone,
   nextScheduledTime,
   normalizeDaySlot,
   normalizeTimeSlot,
@@ -80,23 +82,23 @@ async function listSkillReminders(handlerInput) {
   return alerts.filter(isSkillReminder);
 }
 
+function sortSchedules(schedules) {
+  return [...schedules].sort((left, right) => {
+    if (left.kind === 'DAILY') {
+      return -1;
+    }
+
+    if (right.kind === 'DAILY') {
+      return 1;
+    }
+
+    return normalizeDaySlot(left.dayCode).dayOfWeek - normalizeDaySlot(right.dayCode).dayOfWeek;
+  });
+}
+
 async function listSkillSchedules(handlerInput) {
   const reminders = await listSkillReminders(handlerInput);
-
-  return reminders
-    .map(scheduleFromReminder)
-    .filter(Boolean)
-    .sort((left, right) => {
-      if (left.kind === 'DAILY') {
-        return -1;
-      }
-
-      if (right.kind === 'DAILY') {
-        return 1;
-      }
-
-      return normalizeDaySlot(left.dayCode).dayOfWeek - normalizeDaySlot(right.dayCode).dayOfWeek;
-    });
+  return sortSchedules(reminders.map(scheduleFromReminder).filter(Boolean));
 }
 
 async function deleteReminder(handlerInput, alertToken) {
@@ -148,23 +150,42 @@ async function createReminder(handlerInput, request) {
   return handlerInput.serviceClientFactory.getReminderManagementServiceClient().createReminder(request);
 }
 
+function fallbackMessage() {
+  return randomMessage();
+}
+
+async function createBedtimeReminder(handlerInput, { dayCode, time, timeZoneId }) {
+  const dayName = dayCode ? (DAY_BY_CODE.get(dayCode)?.name || dayCode) : 'every day';
+  const message = await generateBedtimeMessage({
+    dayName,
+    fallback: fallbackMessage,
+    time,
+  });
+
+  await createReminder(
+    handlerInput,
+    reminderRequest({
+      dayCode,
+      message,
+      time,
+      timeZoneId,
+    }),
+  );
+}
+
 async function setDailySchedule(handlerInput, time) {
   const timeZoneId = await getDeviceTimeZone(handlerInput);
   const schedules = await listSkillSchedules(handlerInput);
 
   await deleteReminders(handlerInput, schedules);
-
-  await createReminder(
-    handlerInput,
-    reminderRequest({
-      message: randomMessage(),
-      time,
-      timeZoneId,
-    }),
-  );
+  await createBedtimeReminder(handlerInput, {
+    time,
+    timeZoneId,
+  });
 
   return {
     deletedCount: schedules.length,
+    removedDaily: schedules.some((schedule) => schedule.kind === 'DAILY'),
   };
 }
 
@@ -176,20 +197,54 @@ async function setDaySchedule(handlerInput, dayCode, time) {
   );
 
   await deleteReminders(handlerInput, remindersToDelete);
-
-  await createReminder(
-    handlerInput,
-    reminderRequest({
-      dayCode,
-      message: randomMessage(),
-      time,
-      timeZoneId,
-    }),
-  );
+  await createBedtimeReminder(handlerInput, {
+    dayCode,
+    time,
+    timeZoneId,
+  });
 
   return {
+    deletedCount: remindersToDelete.length,
     removedDaily: remindersToDelete.some((schedule) => schedule.kind === 'DAILY'),
     dayName: normalizeDaySlot(dayCode)?.name || dayCode,
+  };
+}
+
+async function setScheduleGroupSchedule(handlerInput, group, time) {
+  if (group.code === 'DAILY') {
+    const result = await setDailySchedule(handlerInput, time);
+    return {
+      ...result,
+      createdCount: 1,
+      groupCode: group.code,
+      groupName: group.name,
+    };
+  }
+
+  const timeZoneId = await getDeviceTimeZone(handlerInput);
+  const schedules = await listSkillSchedules(handlerInput);
+  const remindersToDelete = schedules.filter(
+    (schedule) =>
+      schedule.kind === 'DAILY' ||
+      (schedule.kind === 'WEEKLY' && group.dayCodes.includes(schedule.dayCode)),
+  );
+
+  await deleteReminders(handlerInput, remindersToDelete);
+
+  for (const dayCode of group.dayCodes) {
+    await createBedtimeReminder(handlerInput, {
+      dayCode,
+      time,
+      timeZoneId,
+    });
+  }
+
+  return {
+    createdCount: group.dayCodes.length,
+    deletedCount: remindersToDelete.length,
+    groupCode: group.code,
+    groupName: group.name,
+    removedDaily: remindersToDelete.some((schedule) => schedule.kind === 'DAILY'),
   };
 }
 
@@ -232,6 +287,12 @@ async function clearAllSchedules(handlerInput) {
   };
 }
 
+function remainingDayLines(schedules, excludedDayCodes) {
+  return schedules
+    .filter((schedule) => schedule.kind === 'WEEKLY' && !excludedDayCodes.has(schedule.dayCode))
+    .map((schedule) => `${schedule.dayName} at ${timeForSpeech(schedule.time)}`);
+}
+
 function speechForSchedules(schedules) {
   if (!schedules.length) {
     return 'You do not have a Goodnight Sweetheart bedtime schedule yet.';
@@ -243,38 +304,84 @@ function speechForSchedules(schedules) {
     return `Right now you have one every-day bedtime reminder set for ${timeForSpeech(dailySchedule.time)}.`;
   }
 
-  const dayLines = schedules
-    .filter((schedule) => schedule.kind === 'WEEKLY')
-    .map((schedule) => `${schedule.dayName} at ${timeForSpeech(schedule.time)}`);
+  const weeklySchedules = schedules.filter((schedule) => schedule.kind === 'WEEKLY');
+  const weeklyByDay = new Map(weeklySchedules.map((schedule) => [schedule.dayCode, schedule]));
+  const segments = [];
+  const excludedDayCodes = new Set();
 
-  return `Here is your bedtime schedule: ${dayLines.join(', ')}.`;
+  const weekdayCodes = ['MO', 'TU', 'WE', 'TH', 'FR'];
+  const weekdayTime = weeklyByDay.get('MO')?.time;
+
+  if (weekdayTime && weekdayCodes.every((dayCode) => weeklyByDay.get(dayCode)?.time === weekdayTime)) {
+    weekdayCodes.forEach((dayCode) => excludedDayCodes.add(dayCode));
+    segments.push(`weekdays at ${timeForSpeech(weekdayTime)}`);
+  }
+
+  const weekendCodes = ['SA', 'SU'];
+  const weekendTime = weeklyByDay.get('SA')?.time;
+
+  if (weekendTime && weekendCodes.every((dayCode) => weeklyByDay.get(dayCode)?.time === weekendTime)) {
+    weekendCodes.forEach((dayCode) => excludedDayCodes.add(dayCode));
+    segments.push(`weekends at ${timeForSpeech(weekendTime)}`);
+  }
+
+  segments.push(...remainingDayLines(weeklySchedules, excludedDayCodes));
+
+  return `Here is your bedtime schedule: ${segments.join(', ')}.`;
 }
 
-function requestReminderPermissions(handlerInput, pendingAction) {
-  const directiveToken = `goodnight-sweetheart-${Date.now()}`;
+async function bedtimeForTonight(handlerInput) {
+  const timeZoneId = await getDeviceTimeZone(handlerInput);
+  const schedules = await listSkillSchedules(handlerInput);
+  const dayCode = dayCodeForTimeZone(timeZoneId);
+  const dayName = normalizeDaySlot(dayCode)?.name || 'tonight';
+  const dailySchedule = schedules.find((schedule) => schedule.kind === 'DAILY');
+
+  if (dailySchedule) {
+    return {
+      dayCode,
+      dayName,
+      hasSchedule: true,
+      kind: 'DAILY',
+      time: dailySchedule.time,
+    };
+  }
+
+  const tonightSchedule = schedules.find((schedule) => schedule.kind === 'WEEKLY' && schedule.dayCode === dayCode);
+
+  if (!tonightSchedule) {
+    return {
+      dayCode,
+      dayName,
+      hasSchedule: false,
+    };
+  }
+
+  return {
+    dayCode,
+    dayName,
+    hasSchedule: true,
+    kind: 'WEEKLY',
+    time: tonightSchedule.time,
+  };
+}
+
+function requestReminderPermissions(handlerInput) {
   const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-  sessionAttributes.pendingAction = pendingAction;
-  sessionAttributes.directiveToken = directiveToken;
+  delete sessionAttributes.pendingAction;
+  delete sessionAttributes.directiveToken;
   handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
 
   return handlerInput.responseBuilder
     .speak(
-      'To manage bedtime reminders, I need permission to create Alexa reminders for you. Please review the next permission prompt.',
+      'I need permission to manage Alexa reminders for you. I have sent a permission card to your Alexa app. After you grant access, come back and try again.',
     )
-    .addDirective({
-      type: 'Connections.SendRequest',
-      name: 'AskFor',
-      payload: {
-        '@type': 'AskForPermissionsConsentRequest',
-        '@version': '1',
-        permissionScope: REMINDER_PERMISSION,
-      },
-      token: directiveToken,
-    })
+    .withAskForPermissionsConsentCard([REMINDER_PERMISSION])
     .getResponse();
 }
 
 module.exports = {
+  bedtimeForTonight,
   clearAllSchedules,
   clearDaySchedule,
   isPermissionError,
@@ -285,6 +392,7 @@ module.exports = {
   requestReminderPermissions,
   setDailySchedule,
   setDaySchedule,
+  setScheduleGroupSchedule,
   speechForSchedules,
   timeForSpeech,
 };

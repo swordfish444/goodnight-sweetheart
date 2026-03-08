@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   nextScheduledTime,
   normalizeDaySlot,
+  normalizeScheduleGroup,
   normalizeTimeSlot,
   parseRecurrenceRule,
   recurrenceRuleForDaily,
@@ -24,6 +25,16 @@ test('normalizeDaySlot accepts Alexa day values', () => {
     name: 'Monday',
     slot: 'MONDAY',
   });
+});
+
+test('normalizeScheduleGroup accepts weekday slot values and aliases', () => {
+  assert.deepEqual(normalizeScheduleGroup('weekdays'), {
+    aliases: ['WEEKDAYS', 'WEEKDAY', 'WORK WEEK', 'WORKWEEK', 'WEEKNIGHTS', 'WEEK NIGHTS'],
+    code: 'WEEKDAYS',
+    dayCodes: ['MO', 'TU', 'WE', 'TH', 'FR'],
+    name: 'weekdays',
+  });
+  assert.equal(normalizeScheduleGroup('all week')?.code, 'DAILY');
 });
 
 test('timeForSpeech converts normalized times into spoken values', () => {
@@ -75,4 +86,3 @@ test('nextScheduledTime returns an Alexa-style timestamp string', () => {
 
   assert.match(scheduledTime, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000$/);
 });
-

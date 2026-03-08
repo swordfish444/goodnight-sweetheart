@@ -1,6 +1,6 @@
 const { Temporal } = require('@js-temporal/polyfill');
 
-const { DAY_BY_CODE, DAY_BY_SLOT } = require('./constants');
+const { DAY_BY_CODE, DAY_BY_SLOT, SCHEDULE_GROUP_BY_SLOT } = require('./constants');
 
 function pad(value) {
   return String(value).padStart(2, '0');
@@ -30,6 +30,14 @@ function normalizeDaySlot(slotValue) {
   }
 
   return DAY_BY_SLOT.get(slotValue.trim().toUpperCase()) || null;
+}
+
+function normalizeScheduleGroup(slotValue) {
+  if (!slotValue || typeof slotValue !== 'string') {
+    return null;
+  }
+
+  return SCHEDULE_GROUP_BY_SLOT.get(slotValue.trim().toUpperCase()) || null;
 }
 
 function timeForSpeech(timeValue) {
@@ -139,13 +147,20 @@ function nextScheduledTime({ dayCode, time, timeZoneId }) {
   )}:${pad(candidate.second)}.000`;
 }
 
+function dayCodeForTimeZone(timeZoneId) {
+  const now = Temporal.Now.zonedDateTimeISO(timeZoneId);
+  const currentDay = Array.from(DAY_BY_CODE.values()).find((definition) => definition.dayOfWeek === now.dayOfWeek);
+  return currentDay?.code || null;
+}
+
 module.exports = {
+  dayCodeForTimeZone,
   nextScheduledTime,
   normalizeDaySlot,
+  normalizeScheduleGroup,
   normalizeTimeSlot,
   parseRecurrenceRule,
   recurrenceRuleForDaily,
   recurrenceRuleForDay,
   timeForSpeech,
 };
-

@@ -1,6 +1,8 @@
 const Alexa = require('ask-sdk-core');
 
+const { decorateResponseBuilder } = require('./lib/apl');
 const {
+  bedtimeForTonight,
   clearAllSchedules,
   clearDaySchedule,
   isPermissionError,
@@ -11,9 +13,11 @@ const {
   requestReminderPermissions,
   setDailySchedule,
   setDaySchedule,
+  setScheduleGroupSchedule,
   speechForSchedules,
   timeForSpeech,
 } = require('./lib/reminders');
+const { normalizeScheduleGroup } = require('./lib/schedule');
 
 function getPendingAction(handlerInput) {
   return handlerInput.attributesManager.getSessionAttributes().pendingAction;
@@ -31,12 +35,47 @@ function clearPendingAction(handlerInput) {
   handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
 }
 
+function buildVisualResponse(
+  handlerInput,
+  {
+    footer,
+    reprompt,
+    speech,
+    subtitle = speech,
+    title = 'Goodnight Sweetheart',
+  },
+) {
+  const responseBuilder = handlerInput.responseBuilder.speak(speech);
+
+  if (reprompt) {
+    responseBuilder.reprompt(reprompt);
+  }
+
+  decorateResponseBuilder(handlerInput, responseBuilder, {
+    footer,
+    subtitle,
+    title,
+  });
+
+  return responseBuilder.getResponse();
+}
+
 function buildConfirmationResponse(handlerInput, pendingAction, speech) {
   setPendingAction(handlerInput, pendingAction);
-  return handlerInput.responseBuilder
-    .speak(speech)
-    .reprompt('Say yes to save it, or no to cancel.')
-    .getResponse();
+  return buildVisualResponse(handlerInput, {
+    footer: 'Say yes to save it, or no to cancel.',
+    reprompt: 'Say yes to save it, or no to cancel.',
+    speech,
+    subtitle: speech,
+  });
+}
+
+function bedtimeScheduleErrorResponse(handlerInput) {
+  return buildVisualResponse(handlerInput, {
+    footer: 'Please try again.',
+    reprompt: 'Please try again.',
+    speech: 'Something went wrong while I was working on your bedtime schedule. Please try again.',
+  });
 }
 
 async function executePendingAction(handlerInput, pendingAction) {
@@ -44,25 +83,39 @@ async function executePendingAction(handlerInput, pendingAction) {
     if (pendingAction.type === 'SET_DAILY') {
       const result = await setDailySchedule(handlerInput, pendingAction.time);
       clearPendingAction(handlerInput);
-      return handlerInput.responseBuilder
-        .speak(
-          `Done. I'll send a Goodnight Sweetheart reminder every day at ${timeForSpeech(
-            pendingAction.time,
-          )}. ${result.deletedCount > 0 ? 'I also replaced the old bedtime schedule.' : ''}`.trim(),
-        )
-        .getResponse();
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can ask what your bedtime schedule is at any time.',
+        speech: `Done. I'll send a Goodnight Sweetheart reminder every day at ${timeForSpeech(
+          pendingAction.time,
+        )}.${result.deletedCount > 0 ? ' I replaced your previous bedtime schedule.' : ''}`,
+      });
     }
 
     if (pendingAction.type === 'SET_DAY') {
       const result = await setDaySchedule(handlerInput, pendingAction.dayCode, pendingAction.time);
       clearPendingAction(handlerInput);
-      return handlerInput.responseBuilder
-        .speak(
-          `Done. ${result.dayName} is now set for ${timeForSpeech(pendingAction.time)}.${
-            result.removedDaily ? ' I removed the old every-day reminder so it does not double up.' : ''
-          }`,
-        )
-        .getResponse();
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can also set weekdays and weekends separately.',
+        speech: `Done. ${result.dayName} is now set for ${timeForSpeech(pendingAction.time)}.${
+          result.removedDaily ? ' I also removed the old every-day reminder so it does not double up.' : ''
+        }`,
+      });
+    }
+
+    if (pendingAction.type === 'SET_GROUP') {
+      const result = await setScheduleGroupSchedule(handlerInput, pendingAction.group, pendingAction.time);
+      clearPendingAction(handlerInput);
+      const subject =
+        result.groupCode === 'DAILY'
+          ? 'your every-day bedtime reminder'
+          : `your ${result.groupName} bedtime reminders`;
+
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can say: what time is bedtime tonight.',
+        speech: `Done. I set ${subject} for ${timeForSpeech(pendingAction.time)}.${
+          result.removedDaily ? ' I also removed the old every-day reminder so it does not double up.' : ''
+        }`,
+      });
     }
 
     if (pendingAction.type === 'CLEAR_DAY') {
@@ -73,25 +126,30 @@ async function executePendingAction(handlerInput, pendingAction) {
         : result.blockedByDaily
           ? 'You currently have one every-day bedtime reminder. Ask me to clear everything, or set custom days instead.'
           : `I could not find a ${result.dayName} bedtime reminder to clear.`;
-      return handlerInput.responseBuilder.speak(speech).getResponse();
+
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can say: clear all my bedtime reminders.',
+        speech,
+      });
     }
 
     if (pendingAction.type === 'CLEAR_ALL') {
       const result = await clearAllSchedules(handlerInput);
       clearPendingAction(handlerInput);
-      return handlerInput.responseBuilder
-        .speak(
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can set a new bedtime anytime.',
+        speech:
           result.deletedCount > 0
             ? 'Okay. I cleared your full Goodnight Sweetheart bedtime schedule.'
             : 'You do not have any Goodnight Sweetheart bedtime reminders to clear.',
-        )
-        .getResponse();
+      });
     }
 
     clearPendingAction(handlerInput);
-    return handlerInput.responseBuilder
-      .speak('I did not have a pending bedtime change to complete.')
-      .getResponse();
+    return buildVisualResponse(handlerInput, {
+      footer: 'Try asking me to set a bedtime first.',
+      speech: 'I did not have a pending bedtime change to complete.',
+    });
   } catch (error) {
     if (isPermissionError(error)) {
       return requestReminderPermissions(handlerInput, pendingAction);
@@ -99,11 +157,11 @@ async function executePendingAction(handlerInput, pendingAction) {
 
     if (isTimeZoneError(error)) {
       clearPendingAction(handlerInput);
-      return handlerInput.responseBuilder
-        .speak(
+      return buildVisualResponse(handlerInput, {
+        footer: 'Check the device time zone in the Alexa app, then try again.',
+        speech:
           'I could not read your Alexa device time zone. Check the device time zone in the Alexa app, then try again.',
-        )
-        .getResponse();
+      });
     }
 
     throw error;
@@ -115,12 +173,14 @@ const LaunchRequestHandler = {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
   },
   handle(handlerInput) {
-    return handlerInput.responseBuilder
-      .speak(
-        'Welcome to Goodnight Sweetheart. I can schedule loving bedtime reminders for every day or for specific days of the week. Try saying, set my bedtime for 10 PM every day.',
-      )
-      .reprompt('You can say, set my bedtime for 10 PM every day.')
-      .getResponse();
+    return buildVisualResponse(handlerInput, {
+      footer: 'Try saying: set weekdays for 10 PM.',
+      reprompt: 'You can say, set my bedtime for 10 PM every day.',
+      speech:
+        'Welcome to Goodnight Sweetheart. I can set one bedtime every night, separate bedtimes for weekdays and weekends, or a different time for any day of the week.',
+      subtitle:
+        'Set one bedtime every day, weekdays and weekends, or custom times for individual days.',
+    });
   },
 };
 
@@ -136,10 +196,11 @@ const SetDailyBedtimeIntentHandler = {
     const time = normalizeTimeSlot(slotValue);
 
     if (!time) {
-      return handlerInput.responseBuilder
-        .speak('I did not catch the bedtime. Try saying, set my bedtime for 10 PM every day.')
-        .reprompt('Try saying, set my bedtime for 10 PM every day.')
-        .getResponse();
+      return buildVisualResponse(handlerInput, {
+        footer: 'Try saying: set my bedtime for 10 PM every day.',
+        reprompt: 'Try saying, set my bedtime for 10 PM every day.',
+        speech: 'I did not catch the bedtime. Try saying, set my bedtime for 10 PM every day.',
+      });
     }
 
     return buildConfirmationResponse(
@@ -167,10 +228,11 @@ const SetDayBedtimeIntentHandler = {
     const time = normalizeTimeSlot(timeValue);
 
     if (!day || !time) {
-      return handlerInput.responseBuilder
-        .speak('I need both a day and a time. For example, say set Monday bedtime for 9:30 PM.')
-        .reprompt('Try saying, set Monday bedtime for 9:30 PM.')
-        .getResponse();
+      return buildVisualResponse(handlerInput, {
+        footer: 'Try saying: set Monday bedtime for 9:30 PM.',
+        reprompt: 'Try saying, set Monday bedtime for 9:30 PM.',
+        speech: 'I need both a day and a time. For example, say set Monday bedtime for 9:30 PM.',
+      });
     }
 
     return buildConfirmationResponse(
@@ -185,6 +247,40 @@ const SetDayBedtimeIntentHandler = {
   },
 };
 
+const SetScheduleGroupBedtimeIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === 'SetScheduleGroupBedtimeIntent'
+    );
+  },
+  handle(handlerInput) {
+    const groupValue = Alexa.getSlotValue(handlerInput.requestEnvelope, 'bedtimeGroup');
+    const timeValue = Alexa.getSlotValue(handlerInput.requestEnvelope, 'bedtimeTime');
+    const group = normalizeScheduleGroup(groupValue);
+    const time = normalizeTimeSlot(timeValue);
+
+    if (!group || !time) {
+      return buildVisualResponse(handlerInput, {
+        footer: 'Try saying: set weekdays for 10 PM.',
+        reprompt: 'Try saying, set weekdays for 10 PM.',
+        speech:
+          'I need both the day group and the time. For example, say set weekdays for 10 PM.',
+      });
+    }
+
+    return buildConfirmationResponse(
+      handlerInput,
+      {
+        type: 'SET_GROUP',
+        group,
+        time,
+      },
+      `I can set ${group.name} for ${timeForSpeech(time)}. Would you like me to save that?`,
+    );
+  },
+};
+
 const ViewBedtimeScheduleIntentHandler = {
   canHandle(handlerInput) {
     return (
@@ -195,7 +291,10 @@ const ViewBedtimeScheduleIntentHandler = {
   async handle(handlerInput) {
     try {
       const schedules = await listSkillSchedules(handlerInput);
-      return handlerInput.responseBuilder.speak(speechForSchedules(schedules)).getResponse();
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can also ask: what time is bedtime tonight.',
+        speech: speechForSchedules(schedules),
+      });
     } catch (error) {
       if (isPermissionError(error)) {
         return requestReminderPermissions(handlerInput, {
@@ -204,11 +303,53 @@ const ViewBedtimeScheduleIntentHandler = {
       }
 
       if (isTimeZoneError(error)) {
-        return handlerInput.responseBuilder
-          .speak(
+        return buildVisualResponse(handlerInput, {
+          footer: 'Check the device time zone in the Alexa app, then try again.',
+          speech:
             'I could not read your Alexa device time zone. Check the device time zone in the Alexa app, then try again.',
-          )
-          .getResponse();
+        });
+      }
+
+      throw error;
+    }
+  },
+};
+
+const TonightBedtimeIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === 'TonightBedtimeIntent'
+    );
+  },
+  async handle(handlerInput) {
+    try {
+      const tonight = await bedtimeForTonight(handlerInput);
+
+      if (!tonight.hasSchedule) {
+        return buildVisualResponse(handlerInput, {
+          footer: 'Try saying: set my bedtime for 10 PM every day.',
+          speech: `You do not have a bedtime reminder scheduled for ${tonight.dayName}.`,
+        });
+      }
+
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can ask me to change it anytime.',
+        speech: `Your bedtime reminder for ${tonight.dayName} is set for ${timeForSpeech(tonight.time)}.`,
+      });
+    } catch (error) {
+      if (isPermissionError(error)) {
+        return requestReminderPermissions(handlerInput, {
+          type: 'VIEW_SCHEDULE',
+        });
+      }
+
+      if (isTimeZoneError(error)) {
+        return buildVisualResponse(handlerInput, {
+          footer: 'Check the device time zone in the Alexa app, then try again.',
+          speech:
+            'I could not read your Alexa device time zone. Check the device time zone in the Alexa app, then try again.',
+        });
       }
 
       throw error;
@@ -228,10 +369,11 @@ const ClearDayBedtimeIntentHandler = {
     const day = normalizeDaySlot(dayValue);
 
     if (!day) {
-      return handlerInput.responseBuilder
-        .speak('Tell me which day to clear. For example, say clear my bedtime on Friday.')
-        .reprompt('Try saying, clear my bedtime on Friday.')
-        .getResponse();
+      return buildVisualResponse(handlerInput, {
+        footer: 'Try saying: clear my bedtime on Friday.',
+        reprompt: 'Try saying, clear my bedtime on Friday.',
+        speech: 'Tell me which day to clear. For example, say clear my bedtime on Friday.',
+      });
     }
 
     return buildConfirmationResponse(
@@ -274,10 +416,11 @@ const YesIntentHandler = {
     const pendingAction = getPendingAction(handlerInput);
 
     if (!pendingAction) {
-      return handlerInput.responseBuilder
-        .speak('There is nothing waiting for confirmation right now.')
-        .reprompt('Try asking me to set a bedtime first.')
-        .getResponse();
+      return buildVisualResponse(handlerInput, {
+        footer: 'Try asking me to set a bedtime first.',
+        reprompt: 'Try asking me to set a bedtime first.',
+        speech: 'There is nothing waiting for confirmation right now.',
+      });
     }
 
     return executePendingAction(handlerInput, pendingAction);
@@ -293,9 +436,10 @@ const NoIntentHandler = {
   },
   handle(handlerInput) {
     clearPendingAction(handlerInput);
-    return handlerInput.responseBuilder
-      .speak('Okay. I did not change your bedtime schedule.')
-      .getResponse();
+    return buildVisualResponse(handlerInput, {
+      footer: 'No changes were made.',
+      speech: 'Okay. I did not change your bedtime schedule.',
+    });
   },
 };
 
@@ -309,22 +453,28 @@ const SessionResumedRequestHandler = {
     const statusCode = cause.status?.code;
 
     if (!pendingAction) {
-      return handlerInput.responseBuilder
-        .speak('The reminder permission flow finished, but there was no pending bedtime change to complete.')
-        .getResponse();
+      return buildVisualResponse(handlerInput, {
+        footer: 'Try asking me to set a bedtime.',
+        speech:
+          'The reminder permission flow finished, but there was no pending bedtime change to complete.',
+      });
     }
 
     if (statusCode && statusCode !== '200') {
       clearPendingAction(handlerInput);
-      return handlerInput.responseBuilder
-        .speak('I could not get reminder permission, so I did not change your bedtime schedule.')
-        .getResponse();
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can reopen the Alexa app and grant reminder access, then try again.',
+        speech: 'I could not get reminder permission, so I did not change your bedtime schedule.',
+      });
     }
 
     if (pendingAction.type === 'VIEW_SCHEDULE') {
       clearPendingAction(handlerInput);
       const schedules = await listSkillSchedules(handlerInput);
-      return handlerInput.responseBuilder.speak(speechForSchedules(schedules)).getResponse();
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can also ask: what time is bedtime tonight.',
+        speech: speechForSchedules(schedules),
+      });
     }
 
     return executePendingAction(handlerInput, pendingAction);
@@ -339,12 +489,12 @@ const HelpIntentHandler = {
     );
   },
   handle(handlerInput) {
-    return handlerInput.responseBuilder
-      .speak(
-        'You can ask me to set your bedtime every day, set a bedtime for one day, tell you your schedule, or clear reminders. For example, say set my bedtime for 10 PM every day.',
-      )
-      .reprompt('Try saying, set my bedtime for 10 PM every day.')
-      .getResponse();
+    return buildVisualResponse(handlerInput, {
+      footer: 'Try saying: set weekends for 11 PM.',
+      reprompt: 'Try saying, set my bedtime for 10 PM every day.',
+      speech:
+        'You can ask me to set your bedtime every day, set weekdays or weekends, set a bedtime for one day, tell you your schedule, or clear reminders.',
+    });
   },
 };
 
@@ -357,7 +507,11 @@ const CancelAndStopIntentHandler = {
   },
   handle(handlerInput) {
     clearPendingAction(handlerInput);
-    return handlerInput.responseBuilder.speak('Goodnight.').getResponse();
+    return buildVisualResponse(handlerInput, {
+      footer: 'Sleep well.',
+      speech: 'Goodnight.',
+      subtitle: 'Sleep well.',
+    });
   },
 };
 
@@ -369,12 +523,12 @@ const FallbackIntentHandler = {
     );
   },
   handle(handlerInput) {
-    return handlerInput.responseBuilder
-      .speak(
+    return buildVisualResponse(handlerInput, {
+      footer: 'Try saying: set weekdays for 10 PM.',
+      reprompt: 'Try saying, set weekdays for 10 PM.',
+      speech:
         'I can help you set loving bedtime reminders. Try saying, set my bedtime for 10 PM every day.',
-      )
-      .reprompt('Try saying, set Monday bedtime for 9:30 PM.')
-      .getResponse();
+    });
   },
 };
 
@@ -395,10 +549,7 @@ const ErrorHandler = {
   handle(handlerInput, error) {
     console.error('Goodnight Sweetheart error', error);
     clearPendingAction(handlerInput);
-    return handlerInput.responseBuilder
-      .speak('Something went wrong while I was working on your bedtime schedule. Please try again.')
-      .reprompt('Please try again.')
-      .getResponse();
+    return bedtimeScheduleErrorResponse(handlerInput);
   },
 };
 
@@ -408,7 +559,9 @@ exports.handler = Alexa.SkillBuilders.custom()
     LaunchRequestHandler,
     SetDailyBedtimeIntentHandler,
     SetDayBedtimeIntentHandler,
+    SetScheduleGroupBedtimeIntentHandler,
     ViewBedtimeScheduleIntentHandler,
+    TonightBedtimeIntentHandler,
     ClearDayBedtimeIntentHandler,
     ClearAllBedtimesIntentHandler,
     YesIntentHandler,
@@ -421,4 +574,3 @@ exports.handler = Alexa.SkillBuilders.custom()
   )
   .addErrorHandlers(ErrorHandler)
   .lambda();
-
