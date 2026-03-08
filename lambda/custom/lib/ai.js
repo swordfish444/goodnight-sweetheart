@@ -1,8 +1,8 @@
 const { timeForSpeech } = require('./schedule');
 
 const DEFAULT_MODEL = 'moonshotai/kimi-k2.5';
-const DEFAULT_MAX_CHARACTERS = 220;
-const DEFAULT_MAX_SENTENCES = 4;
+const DEFAULT_MAX_CHARACTERS = 260;
+const DEFAULT_MAX_SENTENCES = 5;
 
 function normalizeWhitespace(value) {
   return String(value || '')
@@ -24,6 +24,14 @@ function sentenceListFromText(text) {
 
 function ensureSentenceEnding(sentence) {
   return /[.!?]["']?$/.test(sentence) ? sentence : `${sentence}.`;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function stripSkillNameLead(text) {
+  return normalizeWhitespace(text).replace(/^goodnight sweetheart[.!?,:\s-]*/i, '');
 }
 
 function trimToReminderLimits(
@@ -53,6 +61,33 @@ function trimToReminderLimits(
   return normalizeWhitespace(selected.join(' ')).replace(/^Goodnight Sweetheart\.\s*/i, '');
 }
 
+function personalizeBedtimeMessage(
+  text,
+  firstName,
+  {
+    maxCharacters = DEFAULT_MAX_CHARACTERS,
+    maxSentences = DEFAULT_MAX_SENTENCES,
+  } = {},
+) {
+  const normalizedName = String(firstName || '').trim();
+  const cleaned = stripSkillNameLead(text);
+
+  if (!normalizedName) {
+    return trimToReminderLimits(cleaned, {
+      maxCharacters,
+      maxSentences,
+    });
+  }
+
+  const namePattern = new RegExp(`\\b${escapeRegExp(normalizedName)}\\b`, 'i');
+  const personalized = namePattern.test(cleaned) ? cleaned : `Goodnight ${normalizedName}. ${cleaned}`;
+
+  return trimToReminderLimits(personalized, {
+    maxCharacters,
+    maxSentences,
+  });
+}
+
 function extractMessageContent(payload) {
   const content = payload?.choices?.[0]?.message?.content;
 
@@ -79,16 +114,20 @@ function extractMessageContent(payload) {
   return '';
 }
 
-function buildPrompt({ dayName, time, maxCharacters }) {
+function buildPrompt({ dayName, firstName, time, maxCharacters }) {
   const spokenTime = time ? timeForSpeech(time) : 'bedtime';
   const context = dayName ? `for ${dayName}` : 'for tonight';
+  const personalizationInstruction = firstName
+    ? `Start the first sentence with "Goodnight ${firstName}." and use that first name only once.`
+    : 'Do not use names or placeholders.';
 
   return [
     'Write one original bedtime reminder for an Alexa skill.',
     'It should feel warm, affectionate, grounding, and grateful.',
     `Keep it under ${maxCharacters} characters total.`,
-    'Use 2 to 4 short sentences.',
-    'Do not use emojis, markdown, bullet points, quotes, names, or placeholders.',
+    'Use 2 to 5 short sentences.',
+    'Do not use emojis, markdown, bullet points, or quotes.',
+    personalizationInstruction,
     'Avoid medical claims, therapy language, or references to AI.',
     `This reminder will be heard on a shared Alexa device ${context} at ${spokenTime}.`,
   ].join(' ');
@@ -100,6 +139,7 @@ async function requestOpenRouterMessage({
   maxCharacters = DEFAULT_MAX_CHARACTERS,
   model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
   dayName,
+  firstName,
   time,
 }) {
   if (!apiToken) {
@@ -132,6 +172,7 @@ async function requestOpenRouterMessage({
           role: 'user',
           content: buildPrompt({
             dayName,
+            firstName,
             time,
             maxCharacters,
           }),
@@ -157,6 +198,7 @@ async function generateBedtimeMessage({
   fallback,
   fetchImpl = fetch,
   dayName,
+  firstName,
   time,
   maxCharacters = Number(process.env.AI_MESSAGE_MAX_CHARACTERS || DEFAULT_MAX_CHARACTERS),
 } = {}) {
@@ -171,14 +213,21 @@ async function generateBedtimeMessage({
       apiToken,
       dayName,
       fetchImpl,
+      firstName,
       maxCharacters,
       time,
     });
 
-    return generated || fallbackMessage;
+    return personalizeBedtimeMessage(generated || fallbackMessage, firstName, {
+      maxCharacters,
+      maxSentences: Number(process.env.AI_MESSAGE_MAX_SENTENCES || DEFAULT_MAX_SENTENCES),
+    });
   } catch (error) {
     console.error('Goodnight Sweetheart AI generation failed', error);
-    return fallbackMessage;
+    return personalizeBedtimeMessage(fallbackMessage, firstName, {
+      maxCharacters,
+      maxSentences: Number(process.env.AI_MESSAGE_MAX_SENTENCES || DEFAULT_MAX_SENTENCES),
+    });
   }
 }
 
@@ -189,5 +238,6 @@ module.exports = {
   buildPrompt,
   extractMessageContent,
   generateBedtimeMessage,
+  personalizeBedtimeMessage,
   trimToReminderLimits,
 };

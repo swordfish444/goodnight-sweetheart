@@ -5,8 +5,8 @@
       "locales": {
         "en-US": {
           "name": "Goodnight Sweetheart",
-          "summary": "Set a loving bedtime schedule with warm Alexa reminders.",
-          "description": "Goodnight Sweetheart helps customers set one bedtime for every day, separate weekday and weekend bedtimes, or a custom time for each day of the week. At each scheduled time, Alexa delivers a short, affectionate goodnight reminder designed to leave the customer feeling appreciated, grounded, and grateful before sleep.",
+          "summary": "Set a loving bedtime schedule with personalized Alexa reminders.",
+          "description": "Goodnight Sweetheart helps customers set one bedtime for every day, separate weekday and weekend bedtimes, or a custom time for each day of the week. With permission, the skill uses the customer's first name to personalize a short, affectionate goodnight reminder designed to leave the customer feeling appreciated, grounded, and grateful before sleep.",
           "examplePhrases": [
             "Alexa, open goodnight sweetheart",
             "Alexa, ask goodnight sweetheart to set my bedtime for 10 PM every day",
@@ -27,7 +27,7 @@
         }
       },
       "isAvailableWorldwide": true,
-      "testingInstructions": "Grant reminder permissions when prompted. Test one every-day schedule, one weekdays schedule, one custom-day schedule, bedtime tonight readback, single-day clear, and full clear. The skill sends only the requested bedtime context, day grouping, and local reminder timing to the OpenRouter text generation API to create short reminder copy, then stores that generated line inside the Alexa reminder. If the API is unavailable, the skill falls back to an internal message library. Echo Show devices should render the APL background image and schedule summary card on launch and on spoken responses.",
+      "testingInstructions": "Grant reminder permissions and first-name profile permissions when prompted. Test one every-day schedule, one weekdays schedule, one custom-day schedule, bedtime tonight readback, single-day clear, and full clear. The skill sends only the requested bedtime context, day grouping, local reminder timing, and the customer's first name when permission is granted to the OpenRouter text generation API to create short reminder copy, then stores that generated line inside the Alexa reminder. If the API is unavailable or first-name permission is not granted, the skill falls back to an internal message library or a generic salutation. Echo Show devices should render the muted background video with the still-image fallback and schedule summary card on launch and on spoken responses.",
       "category": "LIFESTYLE",
       "distributionMode": "PUBLIC"
     },
@@ -46,6 +46,9 @@
     "permissions": [
       {
         "name": "alexa::alerts:reminders:skill:readwrite"
+      },
+      {
+        "name": "alexa::profile:given_name:read"
       }
     ],
     "privacyAndCompliance": {

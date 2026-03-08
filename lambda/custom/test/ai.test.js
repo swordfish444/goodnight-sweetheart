@@ -1,7 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { generateBedtimeMessage, trimToReminderLimits } = require('../lib/ai');
+const {
+  buildPrompt,
+  generateBedtimeMessage,
+  personalizeBedtimeMessage,
+  trimToReminderLimits,
+} = require('../lib/ai');
 
 test('trimToReminderLimits keeps short reminder copy concise', () => {
   const trimmed = trimToReminderLimits(
@@ -13,6 +18,26 @@ test('trimToReminderLimits keeps short reminder copy concise', () => {
   );
 
   assert.equal(trimmed, 'You are deeply loved tonight. Let the day go softly. Rest in gratitude.');
+});
+
+test('personalizeBedtimeMessage adds the customer first name when needed', () => {
+  const personalized = personalizeBedtimeMessage('You are worthy of rest. Let the day go softly.', 'Skylar', {
+    maxCharacters: 130,
+    maxSentences: 5,
+  });
+
+  assert.equal(personalized, 'Goodnight Skylar. You are worthy of rest. Let the day go softly.');
+});
+
+test('buildPrompt requires the provided first name in the opening sentence', () => {
+  const prompt = buildPrompt({
+    dayName: 'Monday',
+    firstName: 'Skylar',
+    maxCharacters: 260,
+    time: '22:00:00',
+  });
+
+  assert.match(prompt, /Start the first sentence with "Goodnight Skylar\."/);
 });
 
 test('generateBedtimeMessage falls back when no OpenRouter token is configured', async () => {
@@ -43,8 +68,12 @@ test('generateBedtimeMessage trims OpenRouter output to reminder-safe copy', asy
       }),
     }),
     maxCharacters: 130,
+    firstName: 'Skylar',
     time: '22:00:00',
   });
 
-  assert.equal(message, 'Tonight is your chance to breathe. You are worthy of rest. Let your heart feel grateful.');
+  assert.equal(
+    message,
+    'Goodnight Skylar. Tonight is your chance to breathe. You are worthy of rest. Let your heart feel grateful. Sleep gently.',
+  );
 });

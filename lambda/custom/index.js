@@ -1,6 +1,7 @@
 const Alexa = require('ask-sdk-core');
 
 const { decorateResponseBuilder } = require('./lib/apl');
+const { isProfilePermissionError } = require('./lib/profile');
 const {
   bedtimeForTonight,
   clearAllSchedules,
@@ -10,6 +11,7 @@ const {
   listSkillSchedules,
   normalizeDaySlot,
   normalizeTimeSlot,
+  requestBedtimeSetupPermissions,
   requestReminderPermissions,
   setDailySchedule,
   setDaySchedule,
@@ -18,6 +20,10 @@ const {
   timeForSpeech,
 } = require('./lib/reminders');
 const { normalizeScheduleGroup } = require('./lib/schedule');
+
+function pendingActionNeedsProfile(pendingAction) {
+  return ['SET_DAILY', 'SET_DAY', 'SET_GROUP'].includes(pendingAction?.type);
+}
 
 function getPendingAction(handlerInput) {
   return handlerInput.attributesManager.getSessionAttributes().pendingAction;
@@ -151,6 +157,10 @@ async function executePendingAction(handlerInput, pendingAction) {
       speech: 'I did not have a pending bedtime change to complete.',
     });
   } catch (error) {
+    if (pendingActionNeedsProfile(pendingAction) && (isPermissionError(error) || isProfilePermissionError(error))) {
+      return requestBedtimeSetupPermissions(handlerInput);
+    }
+
     if (isPermissionError(error)) {
       return requestReminderPermissions(handlerInput, pendingAction);
     }
@@ -177,9 +187,9 @@ const LaunchRequestHandler = {
       footer: 'Try saying: set weekdays for 10 PM.',
       reprompt: 'You can say, set my bedtime for 10 PM every day.',
       speech:
-        'Welcome to Goodnight Sweetheart. I can set one bedtime every night, separate bedtimes for weekdays and weekends, or a different time for any day of the week.',
+        'Welcome to Goodnight Sweetheart. I can set one bedtime every night, separate bedtimes for weekdays and weekends, or a different time for any day of the week. If you grant profile access, I can personalize your goodnight reminder with your first name.',
       subtitle:
-        'Set one bedtime every day, weekdays and weekends, or custom times for individual days.',
+        'Set daily, weekday, weekend, or custom-day bedtimes with a personalized goodnight reminder.',
     });
   },
 };
@@ -493,7 +503,7 @@ const HelpIntentHandler = {
       footer: 'Try saying: set weekends for 11 PM.',
       reprompt: 'Try saying, set my bedtime for 10 PM every day.',
       speech:
-        'You can ask me to set your bedtime every day, set weekdays or weekends, set a bedtime for one day, tell you your schedule, or clear reminders.',
+        'You can ask me to set your bedtime every day, set weekdays or weekends, set a bedtime for one day, tell you your schedule, or clear reminders. If you grant profile access, I can personalize the reminder with your first name.',
     });
   },
 };

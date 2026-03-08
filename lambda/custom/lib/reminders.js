@@ -1,6 +1,12 @@
-const { DAY_BY_CODE, REMINDER_PERMISSION, SKILL_PREFIX } = require('./constants');
+const {
+  DAY_BY_CODE,
+  PROFILE_GIVEN_NAME_PERMISSION,
+  REMINDER_PERMISSION,
+  SKILL_PREFIX,
+} = require('./constants');
 const { generateBedtimeMessage } = require('./ai');
 const { randomMessage } = require('./messages');
+const { getCustomerFirstName } = require('./profile');
 const {
   dayCodeForTimeZone,
   nextScheduledTime,
@@ -154,11 +160,12 @@ function fallbackMessage() {
   return randomMessage();
 }
 
-async function createBedtimeReminder(handlerInput, { dayCode, time, timeZoneId }) {
+async function createBedtimeReminder(handlerInput, { dayCode, firstName, time, timeZoneId }) {
   const dayName = dayCode ? (DAY_BY_CODE.get(dayCode)?.name || dayCode) : 'every day';
   const message = await generateBedtimeMessage({
     dayName,
     fallback: fallbackMessage,
+    firstName,
     time,
   });
 
@@ -175,10 +182,12 @@ async function createBedtimeReminder(handlerInput, { dayCode, time, timeZoneId }
 
 async function setDailySchedule(handlerInput, time) {
   const timeZoneId = await getDeviceTimeZone(handlerInput);
+  const firstName = await getCustomerFirstName(handlerInput);
   const schedules = await listSkillSchedules(handlerInput);
 
   await deleteReminders(handlerInput, schedules);
   await createBedtimeReminder(handlerInput, {
+    firstName,
     time,
     timeZoneId,
   });
@@ -191,6 +200,7 @@ async function setDailySchedule(handlerInput, time) {
 
 async function setDaySchedule(handlerInput, dayCode, time) {
   const timeZoneId = await getDeviceTimeZone(handlerInput);
+  const firstName = await getCustomerFirstName(handlerInput);
   const schedules = await listSkillSchedules(handlerInput);
   const remindersToDelete = schedules.filter(
     (schedule) => schedule.kind === 'DAILY' || (schedule.kind === 'WEEKLY' && schedule.dayCode === dayCode),
@@ -199,6 +209,7 @@ async function setDaySchedule(handlerInput, dayCode, time) {
   await deleteReminders(handlerInput, remindersToDelete);
   await createBedtimeReminder(handlerInput, {
     dayCode,
+    firstName,
     time,
     timeZoneId,
   });
@@ -222,6 +233,7 @@ async function setScheduleGroupSchedule(handlerInput, group, time) {
   }
 
   const timeZoneId = await getDeviceTimeZone(handlerInput);
+  const firstName = await getCustomerFirstName(handlerInput);
   const schedules = await listSkillSchedules(handlerInput);
   const remindersToDelete = schedules.filter(
     (schedule) =>
@@ -234,6 +246,7 @@ async function setScheduleGroupSchedule(handlerInput, group, time) {
   for (const dayCode of group.dayCodes) {
     await createBedtimeReminder(handlerInput, {
       dayCode,
+      firstName,
       time,
       timeZoneId,
     });
@@ -366,18 +379,32 @@ async function bedtimeForTonight(handlerInput) {
   };
 }
 
-function requestReminderPermissions(handlerInput) {
+function requestPermissions(handlerInput, permissions, speech) {
   const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
   delete sessionAttributes.pendingAction;
   delete sessionAttributes.directiveToken;
   handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
 
   return handlerInput.responseBuilder
-    .speak(
-      'I need permission to manage Alexa reminders for you. I have sent a permission card to your Alexa app. After you grant access, come back and try again.',
-    )
-    .withAskForPermissionsConsentCard([REMINDER_PERMISSION])
+    .speak(speech)
+    .withAskForPermissionsConsentCard([...new Set(permissions)])
     .getResponse();
+}
+
+function requestReminderPermissions(handlerInput) {
+  return requestPermissions(
+    handlerInput,
+    [REMINDER_PERMISSION],
+    'I need permission to manage Alexa reminders for you. I have sent a permission card to your Alexa app. After you grant access, come back and try again.',
+  );
+}
+
+function requestBedtimeSetupPermissions(handlerInput) {
+  return requestPermissions(
+    handlerInput,
+    [REMINDER_PERMISSION, PROFILE_GIVEN_NAME_PERMISSION],
+    'I need permission to manage Alexa reminders and read your first name so I can personalize your goodnight message. I have sent a permission card to your Alexa app. After you grant access, come back and try again.',
+  );
 }
 
 module.exports = {
@@ -389,6 +416,7 @@ module.exports = {
   listSkillSchedules,
   normalizeDaySlot,
   normalizeTimeSlot,
+  requestBedtimeSetupPermissions,
   requestReminderPermissions,
   setDailySchedule,
   setDaySchedule,

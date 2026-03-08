@@ -1,4 +1,5 @@
 const REMINDER_PERMISSION = 'alexa::alerts:reminders:skill:readwrite';
+const PROFILE_GIVEN_NAME_PERMISSION = 'alexa::profile:given_name:read';
 const SKILL_PREFIX = 'Goodnight Sweetheart.';
 
 const DAY_DEFINITIONS = [
@@ -53,6 +54,7 @@ module.exports = {
   DAY_BY_CODE,
   DAY_BY_SLOT,
   DAY_DEFINITIONS,
+  PROFILE_GIVEN_NAME_PERMISSION,
   REMINDER_PERMISSION,
   SCHEDULE_GROUP_BY_SLOT,
   SCHEDULE_GROUP_DEFINITIONS,

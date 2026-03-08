@@ -11,6 +11,7 @@ Goodnight Sweetheart uses only the information needed to create, read, update, a
 This can include:
 
 - the bedtime schedule the customer asks Alexa to create, including the requested time and any day-of-week grouping such as weekdays or weekends
+- the customer's first name, but only if the customer grants Alexa profile permission for it
 - Alexa-generated reminder identifiers needed to manage reminders created by the skill
 - the Alexa device time zone needed to schedule reminders at the requested local time
 - the short prompt context sent to the skill's text-generation provider so the skill can create a bedtime reminder line
@@ -21,11 +22,12 @@ Goodnight Sweetheart uses the OpenRouter API to generate short bedtime reminder 
 
 When this happens, the skill may send:
 
+- the customer's first name, if the customer granted permission for it
 - the requested bedtime time
 - whether the reminder is for every day, weekdays, weekends, or a specific day
 - instructions describing the style and length of the reminder message
 
-The skill is not designed to send the customer's name, email address, phone number, postal address, or account-linking data to OpenRouter.
+The skill is not designed to send the customer's last name, email address, phone number, postal address, or account-linking data to OpenRouter.
 
 If the external text-generation service is unavailable, the skill falls back to an internal message library and still creates the reminder requested by the customer.
 
@@ -33,7 +35,6 @@ If the external text-generation service is unavailable, the skill falls back to 
 
 Goodnight Sweetheart does not use account linking and does not request:
 
-- the customer's name
 - email address
 - phone number
 - physical address
@@ -46,7 +47,7 @@ The information described above is used only to:
 - create bedtime reminders requested by the customer
 - read existing reminders created by the skill
 - update or delete reminders when the customer changes or clears a schedule
-- generate short reminder wording for the reminder that Alexa will later deliver
+- generate short reminder wording for the reminder that Alexa will later deliver, including personalized first-name greetings when permission is granted
 
 ## Where the information is processed
 
@@ -63,6 +64,7 @@ These providers may process limited skill request data as required to deliver th
 Goodnight Sweetheart does not maintain a separate customer marketing database.
 
 - Reminder schedule data is stored through the Alexa reminder the customer asks the skill to create.
+- If first-name permission is granted, the generated reminder text stored inside the Alexa reminder may include the customer's first name.
 - Skill execution logs may temporarily include operational data needed for debugging and reliability.
 - If a customer clears reminders, the skill removes the reminder configuration it manages through the Alexa Reminders API.
 
@@ -79,6 +81,10 @@ Goodnight Sweetheart is not directed to children.
 ## Security
 
 Goodnight Sweetheart is designed to limit the information it processes to the minimum required for reminder scheduling and short reminder generation. No security method can guarantee absolute protection, but the skill is designed to avoid collecting unnecessary personal data.
+
+## Permission choices
+
+Customers can deny first-name profile permission. If that permission is not granted, the skill can still create bedtime reminders, but it will use generic reminder wording instead of a first-name greeting.
 
 ## Changes to this policy
 

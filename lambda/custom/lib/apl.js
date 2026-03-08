@@ -2,6 +2,8 @@ const ICON_URL =
   'https://raw.githubusercontent.com/swordfish444/goodnight-sweetheart/main/assets/icon-512.png';
 const BACKGROUND_URL =
   'https://raw.githubusercontent.com/swordfish444/goodnight-sweetheart/main/assets/show-background.png';
+const VIDEO_URL =
+  'https://raw.githubusercontent.com/swordfish444/goodnight-sweetheart/main/assets/show-video-muted.mp4';
 
 function supportsApl(handlerInput) {
   return Boolean(
@@ -31,11 +33,18 @@ function buildDocument({ footer, subtitle, title }) {
           height: '100vh',
           items: [
             {
-              type: 'Image',
-              source: BACKGROUND_URL,
+              type: 'AlexaBackground',
+              backgroundImageSource: BACKGROUND_URL,
+              backgroundVideoSource: [
+                {
+                  url: VIDEO_URL,
+                  repeatCount: 3,
+                },
+              ],
+              videoAudioTrack: 'none',
+              videoAutoPlay: true,
               width: '100vw',
               height: '100vh',
-              scale: 'best-fill',
             },
             {
               type: 'Frame',
@@ -148,6 +157,7 @@ function decorateResponseBuilder(
 module.exports = {
   BACKGROUND_URL,
   ICON_URL,
+  VIDEO_URL,
   decorateResponseBuilder,
   supportsApl,
 };

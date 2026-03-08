@@ -19,13 +19,15 @@ The skill uses Alexa reminders. Reminder delivery depends on:
 
 The generated reminder wording is created when a reminder is scheduled or updated. Alexa later delivers that stored reminder through the Alexa reminder surface.
 
+If the customer grants first-name profile permission, the stored reminder wording may include the customer's first name.
+
 ## Customer controls
 
 Customers control the schedules they create through the skill. Customers can ask Alexa to change or clear reminders at any time.
 
 ## External processing
 
-The skill may use an external text-generation provider through OpenRouter to create short reminder wording. By using the skill, the customer understands that limited request context needed for the bedtime message may be sent to that provider as described in the privacy policy.
+The skill may use an external text-generation provider through OpenRouter to create short reminder wording. By using the skill, the customer understands that limited request context needed for the bedtime message, including the customer's first name when permission is granted, may be sent to that provider as described in the privacy policy.
 
 ## Availability
 
