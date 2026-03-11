@@ -27,19 +27,28 @@ const SCHEDULE_GROUP_DEFINITIONS = [
     code: 'DAILY',
     name: 'every day',
     dayCodes: DAY_DEFINITIONS.map((definition) => definition.code),
-    aliases: ['EVERY DAY', 'EVERYDAY', 'DAILY', 'EVERY NIGHT', 'ALL WEEK'],
+    aliases: ['EVERY DAY', 'EVERYDAY', 'DAILY', 'EVERY NIGHT', 'ALL WEEK', 'ALL NIGHTS', 'NIGHTLY'],
   },
   {
     code: 'WEEKDAYS',
     name: 'weekdays',
     dayCodes: ['MO', 'TU', 'WE', 'TH', 'FR'],
-    aliases: ['WEEKDAYS', 'WEEKDAY', 'WORK WEEK', 'WORKWEEK', 'WEEKNIGHTS', 'WEEK NIGHTS'],
+    aliases: [
+      'WEEKDAYS',
+      'WEEKDAY',
+      'WORK WEEK',
+      'WORKWEEK',
+      'WEEKNIGHTS',
+      'WEEK NIGHTS',
+      'WORK NIGHTS',
+      'WEEKDAY NIGHTS',
+    ],
   },
   {
     code: 'WEEKENDS',
     name: 'weekends',
     dayCodes: ['SA', 'SU'],
-    aliases: ['WEEKENDS', 'WEEKEND'],
+    aliases: ['WEEKENDS', 'WEEKEND', 'WEEKEND NIGHTS'],
   },
 ];
 

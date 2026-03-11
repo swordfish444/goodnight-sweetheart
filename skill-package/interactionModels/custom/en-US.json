@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "goodnight sweetheart",
+      "invocationName": "nightly wishes",
       "intents": [
         {
           "name": "SetDailyBedtimeIntent",
@@ -17,9 +17,18 @@
             "set bedtime for {bedtimeTime} every night",
             "every day at {bedtimeTime}",
             "every night at {bedtimeTime}",
-            "I go to bed at {bedtimeTime} every day",
+            "i go to bed at {bedtimeTime} every day",
             "set my schedule for {bedtimeTime} every day",
-            "remind me at {bedtimeTime} every night"
+            "remind me at {bedtimeTime} every night",
+            "set my bedtime to {bedtimeTime}",
+            "set bedtime to {bedtimeTime}",
+            "make my bedtime {bedtimeTime}",
+            "bedtime is {bedtimeTime}",
+            "change my bedtime to {bedtimeTime}",
+            "move my bedtime to {bedtimeTime}",
+            "update my bedtime to {bedtimeTime}",
+            "set my nightly reminder for {bedtimeTime}",
+            "remind me to go to bed at {bedtimeTime}"
           ]
         },
         {
@@ -36,12 +45,19 @@
           ],
           "samples": [
             "set {bedtimeDay} bedtime for {bedtimeTime}",
-            "on {bedtimeDay} I go to bed at {bedtimeTime}",
+            "on {bedtimeDay} i go to bed at {bedtimeTime}",
             "set my bedtime on {bedtimeDay} for {bedtimeTime}",
             "make {bedtimeDay} bedtime {bedtimeTime}",
             "set {bedtimeDay} for {bedtimeTime}",
             "set bedtime on {bedtimeDay} to {bedtimeTime}",
-            "remind me on {bedtimeDay} at {bedtimeTime}"
+            "remind me on {bedtimeDay} at {bedtimeTime}",
+            "set my {bedtimeDay} bedtime to {bedtimeTime}",
+            "change {bedtimeDay} bedtime to {bedtimeTime}",
+            "move {bedtimeDay} bedtime to {bedtimeTime}",
+            "update {bedtimeDay} to {bedtimeTime}",
+            "on {bedtimeDay} set my bedtime to {bedtimeTime}",
+            "make my {bedtimeDay} reminder {bedtimeTime}",
+            "remind me to go to bed on {bedtimeDay} at {bedtimeTime}"
           ]
         },
         {
@@ -61,37 +77,56 @@
             "make {bedtimeGroup} bedtime {bedtimeTime}",
             "set my {bedtimeGroup} bedtime for {bedtimeTime}",
             "set bedtime on {bedtimeGroup} to {bedtimeTime}",
-            "remind me at {bedtimeTime} on {bedtimeGroup}"
+            "remind me at {bedtimeTime} on {bedtimeGroup}",
+            "set {bedtimeGroup} to {bedtimeTime}",
+            "change {bedtimeGroup} to {bedtimeTime}",
+            "move {bedtimeGroup} bedtime to {bedtimeTime}",
+            "on {bedtimeGroup} at {bedtimeTime}",
+            "my {bedtimeGroup} bedtime is {bedtimeTime}",
+            "remind me to go to bed at {bedtimeTime} on {bedtimeGroup}"
           ]
         },
         {
           "name": "ViewBedtimeScheduleIntent",
-        "samples": [
-          "what is my bedtime schedule",
-          "what are my bedtimes",
-          "tell me my bedtime schedule",
-          "when are my bedtime reminders",
-          "what is set",
-          "what time are my bedtimes",
-          "what are my bedtime times",
-          "what days do i have bedtimes",
-          "what is my bedtime plan"
-        ]
-      },
-      {
-        "name": "TonightBedtimeIntent",
-        "samples": [
-          "what time is bedtime tonight",
-          "what is my bedtime tonight",
-          "do I have a bedtime reminder tonight",
-          "when is bedtime tonight",
-          "what time is my bedtime",
-          "when is my bedtime",
-          "what time is my bedtime set for",
-          "what time do i go to bed",
-          "when do i go to bed"
-        ]
-      },
+          "samples": [
+            "what is my bedtime schedule",
+            "what are my bedtimes",
+            "tell me my bedtime schedule",
+            "when are my bedtime reminders",
+            "what is set",
+            "what time are my bedtimes",
+            "what are my bedtime times",
+            "what days do i have bedtimes",
+            "what is my bedtime plan",
+            "what is my current bedtime schedule",
+            "read back my bedtime schedule",
+            "tell me all of my bedtimes",
+            "what reminders do i have",
+            "what do you have scheduled",
+            "check my bedtime schedule",
+            "what is my nightly schedule"
+          ]
+        },
+        {
+          "name": "TonightBedtimeIntent",
+          "samples": [
+            "what time is bedtime tonight",
+            "what is my bedtime tonight",
+            "do i have a bedtime reminder tonight",
+            "when is bedtime tonight",
+            "what time is my bedtime",
+            "when is my bedtime",
+            "what time is my bedtime set for",
+            "what time do i go to bed",
+            "when do i go to bed",
+            "what is my reminder tonight",
+            "when is my reminder tonight",
+            "do i have bedtime tonight",
+            "am i scheduled for tonight",
+            "what time is tonight's bedtime",
+            "what time is tonight's reminder"
+          ]
+        },
         {
           "name": "ClearDayBedtimeIntent",
           "slots": [
@@ -105,7 +140,13 @@
             "remove my bedtime on {bedtimeDay}",
             "delete my bedtime on {bedtimeDay}",
             "clear {bedtimeDay}",
-            "turn off {bedtimeDay} reminders"
+            "turn off {bedtimeDay} reminders",
+            "clear {bedtimeDay} bedtime",
+            "remove {bedtimeDay} bedtime",
+            "cancel {bedtimeDay} bedtime",
+            "delete {bedtimeDay} reminder",
+            "turn off bedtime on {bedtimeDay}",
+            "remove {bedtimeDay} from my schedule"
           ]
         },
         {
@@ -114,7 +155,12 @@
             "clear my bedtime schedule",
             "clear everything",
             "delete all bedtimes",
-            "remove all reminders"
+            "remove all reminders",
+            "clear all my bedtimes",
+            "cancel all bedtime reminders",
+            "turn off all bedtime reminders",
+            "remove my bedtime schedule",
+            "delete my schedule"
           ]
         },
         {
@@ -153,7 +199,9 @@
                   "every night",
                   "daily",
                   "everyday",
-                  "all week"
+                  "all week",
+                  "all nights",
+                  "nightly"
                 ]
               }
             },
@@ -164,7 +212,10 @@
                   "weekday",
                   "work week",
                   "workweek",
-                  "weeknights"
+                  "weeknights",
+                  "week nights",
+                  "work nights",
+                  "weekday nights"
                 ]
               }
             },
@@ -172,7 +223,8 @@
               "name": {
                 "value": "weekends",
                 "synonyms": [
-                  "weekend"
+                  "weekend",
+                  "weekend nights"
                 ]
               }
             }

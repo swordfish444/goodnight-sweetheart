@@ -8,10 +8,10 @@
           "summary": "Set a loving bedtime schedule with personalized Alexa reminders.",
           "description": "Goodnight Sweetheart helps customers set one bedtime for every day, separate weekday and weekend bedtimes, or a custom time for each day of the week. With permission, the skill uses the customer's first name to personalize a short, affectionate goodnight reminder designed to leave the customer feeling appreciated, grounded, and grateful before sleep.",
           "examplePhrases": [
-            "Alexa, open goodnight sweetheart",
-            "Alexa, ask goodnight sweetheart to set my bedtime for 10 PM every day",
-            "Alexa, ask goodnight sweetheart to set weekdays for 10 PM",
-            "Alexa, ask goodnight sweetheart what time bedtime is tonight"
+            "Alexa, open nightly wishes",
+            "Alexa, ask nightly wishes to set my bedtime to 10 PM",
+            "Alexa, ask nightly wishes to set weekdays to 10 PM",
+            "Alexa, ask nightly wishes what time my bedtime is tonight"
           ],
           "keywords": [
             "bedtime",

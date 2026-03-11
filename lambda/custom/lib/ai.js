@@ -32,7 +32,7 @@ function escapeRegExp(value) {
 }
 
 function stripSkillNameLead(text) {
-  return normalizeWhitespace(text).replace(/^goodnight sweetheart[.!?,:\s-]*/i, '');
+  return normalizeWhitespace(text).replace(/^(goodnight sweetheart|nightly wishes)[.!?,:\s-]*/i, '');
 }
 
 function trimToReminderLimits(
@@ -59,7 +59,7 @@ function trimToReminderLimits(
     break;
   }
 
-  return normalizeWhitespace(selected.join(' ')).replace(/^Goodnight Sweetheart\.\s*/i, '');
+  return normalizeWhitespace(selected.join(' ')).replace(/^(Goodnight Sweetheart|Nightly Wishes)\.\s*/i, '');
 }
 
 function personalizeBedtimeMessage(

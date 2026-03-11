@@ -29,12 +29,24 @@ test('normalizeDaySlot accepts Alexa day values', () => {
 
 test('normalizeScheduleGroup accepts weekday slot values and aliases', () => {
   assert.deepEqual(normalizeScheduleGroup('weekdays'), {
-    aliases: ['WEEKDAYS', 'WEEKDAY', 'WORK WEEK', 'WORKWEEK', 'WEEKNIGHTS', 'WEEK NIGHTS'],
+    aliases: [
+      'WEEKDAYS',
+      'WEEKDAY',
+      'WORK WEEK',
+      'WORKWEEK',
+      'WEEKNIGHTS',
+      'WEEK NIGHTS',
+      'WORK NIGHTS',
+      'WEEKDAY NIGHTS',
+    ],
     code: 'WEEKDAYS',
     dayCodes: ['MO', 'TU', 'WE', 'TH', 'FR'],
     name: 'weekdays',
   });
   assert.equal(normalizeScheduleGroup('all week')?.code, 'DAILY');
+  assert.equal(normalizeScheduleGroup('nightly')?.code, 'DAILY');
+  assert.equal(normalizeScheduleGroup('weekday nights')?.code, 'WEEKDAYS');
+  assert.equal(normalizeScheduleGroup('weekend nights')?.code, 'WEEKENDS');
 });
 
 test('timeForSpeech converts normalized times into spoken values', () => {
