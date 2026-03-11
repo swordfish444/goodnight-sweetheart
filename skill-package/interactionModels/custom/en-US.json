@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "good night sweetheart",
+      "invocationName": "goodnight sweetheart",
       "intents": [
         {
           "name": "SetDailyBedtimeIntent",
