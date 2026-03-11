@@ -3,6 +3,7 @@ const { timeForSpeech } = require('./schedule');
 const DEFAULT_MODEL = 'moonshotai/kimi-k2.5';
 const DEFAULT_MAX_CHARACTERS = 260;
 const DEFAULT_MAX_SENTENCES = 5;
+const DEFAULT_REQUEST_TIMEOUT_MS = 3500;
 
 function normalizeWhitespace(value) {
   return String(value || '')
@@ -137,6 +138,7 @@ async function requestOpenRouterMessage({
   apiToken,
   fetchImpl = fetch,
   maxCharacters = DEFAULT_MAX_CHARACTERS,
+  timeoutMs = Number(process.env.AI_REQUEST_TIMEOUT_MS || DEFAULT_REQUEST_TIMEOUT_MS),
   model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
   dayName,
   firstName,
@@ -146,40 +148,50 @@ async function requestOpenRouterMessage({
     return null;
   }
 
-  const response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://github.com/swordfish444/goodnight-sweetheart',
-      'X-Title': 'Goodnight Sweetheart',
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.9,
-      max_tokens: 160,
-      reasoning: {
-        effort: 'none',
-        exclude: true,
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(new Error('OPENROUTER_TIMEOUT')), timeoutMs);
+
+  let response;
+
+  try {
+    response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://github.com/swordfish444/goodnight-sweetheart',
+        'X-Title': 'Goodnight Sweetheart',
       },
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You write concise bedtime reminder copy for Alexa skills. Keep it safe, gentle, and natural to hear aloud.',
+      body: JSON.stringify({
+        model,
+        temperature: 0.9,
+        max_tokens: 160,
+        reasoning: {
+          effort: 'none',
+          exclude: true,
         },
-        {
-          role: 'user',
-          content: buildPrompt({
-            dayName,
-            firstName,
-            time,
-            maxCharacters,
-          }),
-        },
-      ],
-    }),
-  });
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You write concise bedtime reminder copy for Alexa skills. Keep it safe, gentle, and natural to hear aloud.',
+          },
+          {
+            role: 'user',
+            content: buildPrompt({
+              dayName,
+              firstName,
+              time,
+              maxCharacters,
+            }),
+          },
+        ],
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
@@ -235,6 +247,7 @@ module.exports = {
   DEFAULT_MAX_CHARACTERS,
   DEFAULT_MAX_SENTENCES,
   DEFAULT_MODEL,
+  DEFAULT_REQUEST_TIMEOUT_MS,
   buildPrompt,
   extractMessageContent,
   generateBedtimeMessage,

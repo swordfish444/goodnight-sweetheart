@@ -563,7 +563,7 @@ const ErrorHandler = {
   },
 };
 
-exports.handler = Alexa.SkillBuilders.custom()
+const skill = Alexa.SkillBuilders.custom()
   .withApiClient(new Alexa.DefaultApiClient())
   .addRequestHandlers(
     LaunchRequestHandler,
@@ -583,4 +583,6 @@ exports.handler = Alexa.SkillBuilders.custom()
     SessionEndedRequestHandler,
   )
   .addErrorHandlers(ErrorHandler)
-  .lambda();
+  .create();
+
+exports.handler = async (event, context) => skill.invoke(event, context);

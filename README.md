@@ -47,13 +47,14 @@ npm test
 
 ## Example utterances
 
-- `Alexa, open goodnight sweetheart`
-- `Alexa, ask goodnight sweetheart to set my bedtime for 10 PM every day`
-- `Alexa, ask goodnight sweetheart to set weekdays for 10 PM`
-- `Alexa, ask goodnight sweetheart to set Monday bedtime for 9:30 PM`
-- `Alexa, ask goodnight sweetheart what my bedtime schedule is`
-- `Alexa, ask goodnight sweetheart what time bedtime is tonight`
-- `Alexa, ask goodnight sweetheart to clear my bedtime on Friday`
+- `Alexa, open good night sweetheart`
+- `Alexa, ask good night sweetheart to set my bedtime for 10 PM every day`
+- `Alexa, ask good night sweetheart to set weekdays for 10 PM`
+- `Alexa, ask good night sweetheart to set Monday bedtime for 9:30 PM`
+- `Alexa, ask good night sweetheart what my bedtime schedule is`
+- `Alexa, ask good night sweetheart what time bedtime is tonight`
+- `Alexa, ask good night sweetheart what time my bedtime is`
+- `Alexa, ask good night sweetheart to clear my bedtime on Friday`
 
 ## Current constraints
 

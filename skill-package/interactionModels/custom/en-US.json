@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "goodnight sweetheart",
+      "invocationName": "good night sweetheart",
       "intents": [
         {
           "name": "SetDailyBedtimeIntent",
@@ -66,23 +66,32 @@
         },
         {
           "name": "ViewBedtimeScheduleIntent",
-          "samples": [
-            "what is my bedtime schedule",
-            "what are my bedtimes",
-            "tell me my bedtime schedule",
-            "when are my bedtime reminders",
-            "what is set"
-          ]
-        },
-        {
-          "name": "TonightBedtimeIntent",
-          "samples": [
-            "what time is bedtime tonight",
-            "what is my bedtime tonight",
-            "do I have a bedtime reminder tonight",
-            "when is bedtime tonight"
-          ]
-        },
+        "samples": [
+          "what is my bedtime schedule",
+          "what are my bedtimes",
+          "tell me my bedtime schedule",
+          "when are my bedtime reminders",
+          "what is set",
+          "what time are my bedtimes",
+          "what are my bedtime times",
+          "what days do i have bedtimes",
+          "what is my bedtime plan"
+        ]
+      },
+      {
+        "name": "TonightBedtimeIntent",
+        "samples": [
+          "what time is bedtime tonight",
+          "what is my bedtime tonight",
+          "do I have a bedtime reminder tonight",
+          "when is bedtime tonight",
+          "what time is my bedtime",
+          "when is my bedtime",
+          "what time is my bedtime set for",
+          "what time do i go to bed",
+          "when do i go to bed"
+        ]
+      },
         {
           "name": "ClearDayBedtimeIntent",
           "slots": [
