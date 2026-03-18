@@ -1,7 +1,6 @@
 const Alexa = require('ask-sdk-core');
 
 const { decorateResponseBuilder } = require('./lib/apl');
-const { isProfilePermissionError } = require('./lib/profile');
 const {
   bedtimeForTonight,
   clearAllSchedules,
@@ -11,7 +10,6 @@ const {
   listSkillSchedules,
   normalizeDaySlot,
   normalizeTimeSlot,
-  requestBedtimeSetupPermissions,
   requestReminderPermissions,
   setDailySchedule,
   setDaySchedule,
@@ -20,10 +18,6 @@ const {
   timeForSpeech,
 } = require('./lib/reminders');
 const { normalizeScheduleGroup } = require('./lib/schedule');
-
-function pendingActionNeedsProfile(pendingAction) {
-  return ['SET_DAILY', 'SET_DAY', 'SET_GROUP'].includes(pendingAction?.type);
-}
 
 function getPendingAction(handlerInput) {
   return handlerInput.attributesManager.getSessionAttributes().pendingAction;
@@ -157,10 +151,6 @@ async function executePendingAction(handlerInput, pendingAction) {
       speech: 'I did not have a pending bedtime change to complete.',
     });
   } catch (error) {
-    if (pendingActionNeedsProfile(pendingAction) && (isPermissionError(error) || isProfilePermissionError(error))) {
-      return requestBedtimeSetupPermissions(handlerInput);
-    }
-
     if (isPermissionError(error)) {
       return requestReminderPermissions(handlerInput, pendingAction);
     }

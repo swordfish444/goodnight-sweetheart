@@ -6,7 +6,7 @@ const {
 } = require('./constants');
 const { generateBedtimeMessage } = require('./ai');
 const { randomMessage } = require('./messages');
-const { getCustomerFirstName } = require('./profile');
+const { getCustomerFirstName, isProfilePermissionError } = require('./profile');
 const {
   dayCodeForTimeZone,
   nextScheduledTime,
@@ -85,7 +85,12 @@ function scheduleFromReminder(reminder) {
 async function listSkillReminders(handlerInput) {
   const response = await handlerInput.serviceClientFactory.getReminderManagementServiceClient().getReminders();
   const alerts = response.alerts || [];
-  return alerts.filter(isSkillReminder);
+  const skillAlerts = alerts.filter(isSkillReminder);
+  console.log('Goodnight Sweetheart reminder inventory', {
+    totalAlertCount: alerts.length,
+    skillAlertCount: skillAlerts.length,
+  });
+  return skillAlerts;
 }
 
 function sortSchedules(schedules) {
@@ -160,6 +165,19 @@ function fallbackMessage() {
   return randomMessage();
 }
 
+async function getOptionalCustomerFirstName(handlerInput) {
+  try {
+    return await getCustomerFirstName(handlerInput);
+  } catch (error) {
+    if (!isProfilePermissionError(error)) {
+      throw error;
+    }
+
+    console.warn('Goodnight Sweetheart proceeding without customer first name permission');
+    return null;
+  }
+}
+
 async function createBedtimeReminder(handlerInput, { dayCode, firstName, time, timeZoneId }) {
   const dayName = dayCode ? (DAY_BY_CODE.get(dayCode)?.name || dayCode) : 'every day';
   const message = await generateBedtimeMessage({
@@ -169,7 +187,16 @@ async function createBedtimeReminder(handlerInput, { dayCode, firstName, time, t
     time,
   });
 
-  await createReminder(
+  console.log('Goodnight Sweetheart creating reminder', {
+    dayCode: dayCode || 'DAILY',
+    dayName,
+    hasFirstName: Boolean(firstName),
+    messageLength: message.length,
+    time,
+    timeZoneId,
+  });
+
+  const response = await createReminder(
     handlerInput,
     reminderRequest({
       dayCode,
@@ -178,16 +205,31 @@ async function createBedtimeReminder(handlerInput, { dayCode, firstName, time, t
       timeZoneId,
     }),
   );
+
+  console.log('Goodnight Sweetheart reminder created', {
+    alertToken: response?.alertToken || null,
+    dayCode: dayCode || 'DAILY',
+    time,
+  });
+
+  return response;
 }
 
 async function setDailySchedule(handlerInput, time) {
   const timeZoneId = await getDeviceTimeZone(handlerInput);
-  const firstName = await getCustomerFirstName(handlerInput);
+  const firstName = await getOptionalCustomerFirstName(handlerInput);
   const schedules = await listSkillSchedules(handlerInput);
 
   await deleteReminders(handlerInput, schedules);
   await createBedtimeReminder(handlerInput, {
     firstName,
+    time,
+    timeZoneId,
+  });
+
+  console.log('Goodnight Sweetheart daily schedule updated', {
+    deletedCount: schedules.length,
+    hasFirstName: Boolean(firstName),
     time,
     timeZoneId,
   });
@@ -200,7 +242,7 @@ async function setDailySchedule(handlerInput, time) {
 
 async function setDaySchedule(handlerInput, dayCode, time) {
   const timeZoneId = await getDeviceTimeZone(handlerInput);
-  const firstName = await getCustomerFirstName(handlerInput);
+  const firstName = await getOptionalCustomerFirstName(handlerInput);
   const schedules = await listSkillSchedules(handlerInput);
   const remindersToDelete = schedules.filter(
     (schedule) => schedule.kind === 'DAILY' || (schedule.kind === 'WEEKLY' && schedule.dayCode === dayCode),
@@ -210,6 +252,14 @@ async function setDaySchedule(handlerInput, dayCode, time) {
   await createBedtimeReminder(handlerInput, {
     dayCode,
     firstName,
+    time,
+    timeZoneId,
+  });
+
+  console.log('Goodnight Sweetheart day schedule updated', {
+    dayCode,
+    deletedCount: remindersToDelete.length,
+    hasFirstName: Boolean(firstName),
     time,
     timeZoneId,
   });
@@ -233,7 +283,7 @@ async function setScheduleGroupSchedule(handlerInput, group, time) {
   }
 
   const timeZoneId = await getDeviceTimeZone(handlerInput);
-  const firstName = await getCustomerFirstName(handlerInput);
+  const firstName = await getOptionalCustomerFirstName(handlerInput);
   const schedules = await listSkillSchedules(handlerInput);
   const remindersToDelete = schedules.filter(
     (schedule) =>
@@ -251,6 +301,15 @@ async function setScheduleGroupSchedule(handlerInput, group, time) {
       timeZoneId,
     });
   }
+
+  console.log('Goodnight Sweetheart schedule group updated', {
+    createdCount: group.dayCodes.length,
+    deletedCount: remindersToDelete.length,
+    groupCode: group.code,
+    hasFirstName: Boolean(firstName),
+    time,
+    timeZoneId,
+  });
 
   return {
     createdCount: group.dayCodes.length,
@@ -395,7 +454,7 @@ function requestReminderPermissions(handlerInput) {
   return requestPermissions(
     handlerInput,
     [REMINDER_PERMISSION],
-    'I need permission to manage Alexa reminders for you. I have sent a permission card to your Alexa app. After you grant access, come back and try again.',
+    'I need permission to manage Alexa reminders for you. I have sent a permission card to your Alexa app. No bedtime reminder has been saved yet. After you grant access, ask me to set your bedtime again.',
   );
 }
 
