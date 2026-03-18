@@ -32,6 +32,7 @@ function setPendingAction(handlerInput, pendingAction) {
 function clearPendingAction(handlerInput) {
   const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
   delete sessionAttributes.pendingAction;
+  delete sessionAttributes.directiveToken;
   handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
 }
 
@@ -481,6 +482,57 @@ const SessionResumedRequestHandler = {
   },
 };
 
+const ConnectionsResponseHandler = {
+  canHandle(handlerInput) {
+    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'Connections.Response';
+  },
+  async handle(handlerInput) {
+    const pendingAction = getPendingAction(handlerInput);
+    const request = handlerInput.requestEnvelope.request;
+    const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+    const expectedToken = sessionAttributes.directiveToken;
+    const permissionScope = request.payload?.permissionScopes?.[0];
+    const permissionStatus = permissionScope?.status;
+
+    if (expectedToken && request.token && request.token !== expectedToken) {
+      clearPendingAction(handlerInput);
+      return buildVisualResponse(handlerInput, {
+        footer: 'Try asking me to set a bedtime again.',
+        speech: 'The reminder permission flow did not match the bedtime request I was holding onto. Please try again.',
+      });
+    }
+
+    if (!pendingAction) {
+      return buildVisualResponse(handlerInput, {
+        footer: 'Try asking me to set a bedtime.',
+        speech: 'The reminder permission flow finished, but there was no pending bedtime change to complete.',
+      });
+    }
+
+    if (permissionStatus !== 'ACCEPTED') {
+      clearPendingAction(handlerInput);
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can say: set my bedtime for 10 PM every day.',
+        speech: 'I did not get reminder permission, so I did not save your bedtime schedule.',
+      });
+    }
+
+    delete sessionAttributes.directiveToken;
+    handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+    if (pendingAction.type === 'VIEW_SCHEDULE') {
+      clearPendingAction(handlerInput);
+      const schedules = await listSkillSchedules(handlerInput);
+      return buildVisualResponse(handlerInput, {
+        footer: 'You can also ask: what time is bedtime tonight.',
+        speech: speechForSchedules(schedules),
+      });
+    }
+
+    return executePendingAction(handlerInput, pendingAction);
+  },
+};
+
 const HelpIntentHandler = {
   canHandle(handlerInput) {
     return (
@@ -566,6 +618,7 @@ const skill = Alexa.SkillBuilders.custom()
     ClearAllBedtimesIntentHandler,
     YesIntentHandler,
     NoIntentHandler,
+    ConnectionsResponseHandler,
     SessionResumedRequestHandler,
     HelpIntentHandler,
     CancelAndStopIntentHandler,

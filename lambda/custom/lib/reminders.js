@@ -450,12 +450,39 @@ function requestPermissions(handlerInput, permissions, speech) {
     .getResponse();
 }
 
-function requestReminderPermissions(handlerInput) {
-  return requestPermissions(
-    handlerInput,
-    [REMINDER_PERMISSION],
-    'I need permission to manage Alexa reminders for you. I have sent a permission card to your Alexa app. No bedtime reminder has been saved yet. After you grant access, ask me to set your bedtime again.',
-  );
+function requestReminderPermissions(handlerInput, pendingAction) {
+  const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+  const directiveToken = `reminder-permission-${Date.now()}`;
+
+  if (pendingAction) {
+    sessionAttributes.pendingAction = pendingAction;
+  }
+
+  sessionAttributes.directiveToken = directiveToken;
+  handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+
+  console.log('Goodnight Sweetheart requesting reminder permission', {
+    hasPendingAction: Boolean(pendingAction),
+    pendingActionType: pendingAction?.type || null,
+    directiveToken,
+  });
+
+  return handlerInput.responseBuilder
+    .addDirective({
+      type: 'Connections.SendRequest',
+      name: 'AskFor',
+      payload: {
+        '@type': 'AskForPermissionsConsentRequest',
+        '@version': '2',
+        permissionScopes: [
+          {
+            permissionScope: REMINDER_PERMISSION,
+          },
+        ],
+      },
+      token: directiveToken,
+    })
+    .getResponse();
 }
 
 function requestBedtimeSetupPermissions(handlerInput) {

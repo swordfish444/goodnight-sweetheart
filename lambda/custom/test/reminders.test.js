@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { setDailySchedule, speechForSchedules } = require('../lib/reminders');
+const { requestReminderPermissions, setDailySchedule, speechForSchedules } = require('../lib/reminders');
 
 test('speechForSchedules groups matching weekdays and weekends', () => {
   const speech = speechForSchedules([
@@ -104,4 +104,58 @@ test('setDailySchedule still creates a reminder when profile permission is unava
       process.env.OPENROUTER_TOKEN = originalToken;
     }
   }
+});
+
+test('requestReminderPermissions preserves the pending action and sends a voice permission directive', () => {
+  const sessionAttributes = {};
+  const directives = [];
+  const handlerInput = {
+    attributesManager: {
+      getSessionAttributes() {
+        return sessionAttributes;
+      },
+      setSessionAttributes(nextValue) {
+        Object.assign(sessionAttributes, nextValue);
+      },
+    },
+    responseBuilder: {
+      addDirective(directive) {
+        directives.push(directive);
+        return this;
+      },
+      getResponse() {
+        return {
+          response: {
+            directives,
+          },
+        };
+      },
+    },
+  };
+
+  const pendingAction = {
+    type: 'SET_DAILY',
+    time: '22:00:00',
+  };
+
+  const response = requestReminderPermissions(handlerInput, pendingAction);
+
+  assert.equal(sessionAttributes.pendingAction, pendingAction);
+  assert.match(sessionAttributes.directiveToken, /^reminder-permission-/);
+  assert.deepEqual(response.response.directives, [
+    {
+      type: 'Connections.SendRequest',
+      name: 'AskFor',
+      payload: {
+        '@type': 'AskForPermissionsConsentRequest',
+        '@version': '2',
+        permissionScopes: [
+          {
+            permissionScope: 'alexa::alerts:reminders:skill:readwrite',
+          },
+        ],
+      },
+      token: sessionAttributes.directiveToken,
+    },
+  ]);
 });
